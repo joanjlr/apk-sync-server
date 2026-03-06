@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify, send_from_directory
 import os
 import json
-import time
 
 app = Flask(__name__)
 
@@ -11,7 +10,7 @@ os.makedirs(CARPETA_ARCHIVOS, exist_ok=True)
 
 @app.route("/")
 def inicio():
-    return "Servidor de sincronización APK funcionando"
+    return "Servidor funcionando"
 
 
 @app.route("/upload", methods=["POST"])
@@ -22,20 +21,8 @@ def subir_archivo():
         if not data:
             return jsonify({"error": "No se recibió JSON"}), 400
 
-        # Detectar tipo de archivo automáticamente
-        if "productos" in data:
-            filename = "lista_productos.json"
-
-        elif data.get("tipo_envio") == "AVANCE":
-            filename = "avance_dependiente.json"
-
-        elif data.get("tipo_envio") == "ENVIO_DIA":
-            filename = "cierre_dia_dependiente.json"
-
-        else:
-            filename = f"sync_{int(time.time())}.json"
-
-        filename = os.path.basename(filename)
+        # Siempre guardar con el mismo nombre
+        filename = "archivo_recibido.json"
 
         ruta = os.path.join(CARPETA_ARCHIVOS, filename)
 
@@ -48,9 +35,7 @@ def subir_archivo():
         })
 
     except Exception as e:
-        return jsonify({
-            "error": str(e)
-        }), 500
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/files", methods=["GET"])
@@ -65,29 +50,12 @@ def listar_archivos():
 @app.route("/download/<filename>", methods=["GET"])
 def descargar_archivo(filename):
 
-    filename = os.path.basename(filename)
     ruta = os.path.join(CARPETA_ARCHIVOS, filename)
 
     if not os.path.exists(ruta):
         return jsonify({"error": "archivo no encontrado"}), 404
 
     return send_from_directory(CARPETA_ARCHIVOS, filename)
-
-
-@app.route("/delete/<filename>", methods=["DELETE"])
-def eliminar_archivo(filename):
-
-    filename = os.path.basename(filename)
-    ruta = os.path.join(CARPETA_ARCHIVOS, filename)
-
-    if os.path.exists(ruta):
-        os.remove(ruta)
-        return jsonify({
-            "estado": "archivo eliminado",
-            "archivo": filename
-        })
-    else:
-        return jsonify({"error": "archivo no encontrado"}), 404
 
 
 if __name__ == "__main__":
