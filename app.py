@@ -1,32 +1,49 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 import os
+import json
+import time
 
 app = Flask(__name__)
 
-DATA_FOLDER = "data"
+UPLOAD_FOLDER = "files"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-if not os.path.exists(DATA_FOLDER):
-    os.makedirs(DATA_FOLDER)
-
-@app.route("/")
-def home():
-    return "Servidor APK Sync funcionando"
 
 @app.route("/upload", methods=["POST"])
 def upload():
-    file = request.files["file"]
-    filepath = os.path.join(DATA_FOLDER, file.filename)
-    file.save(filepath)
-    return jsonify({"status": "ok"})
+    try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({"error": "No JSON received"}), 400
+
+        filename = f"sync_{int(time.time())}.json"
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
+
+        with open(filepath, "w", encoding="utf-8") as f:
+            json.dump(data, f)
+
+        return jsonify({"status": "saved", "file": filename})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 @app.route("/files", methods=["GET"])
-def files():
-    return jsonify(os.listdir(DATA_FOLDER))
+def list_files():
+    files = os.listdir(UPLOAD_FOLDER)
+    return jsonify(files)
+
 
 @app.route("/download/<filename>", methods=["GET"])
 def download(filename):
-    from flask import send_from_directory
-    return send_from_directory(DATA_FOLDER, filename)
+    return send_from_directory(UPLOAD_FOLDER, filename)
+
+
+@app.route("/")
+def home():
+    return "APK Sync Server Running"
+
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    app.run()
