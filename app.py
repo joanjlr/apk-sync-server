@@ -22,12 +22,24 @@ def subir_archivo():
         if not data:
             return jsonify({"error": "No se recibió JSON"}), 400
 
-        filename = data.get("filename")
+        tipo = data.get("tipo_envio", "")
 
-        if not filename:
+        # Determinar nombre según tipo
+        if tipo == "FULL_SYNC":
             filename = f"sync_{int(time.time())}.json"
 
-        # Seguridad básica
+        elif tipo == "CATALOGO_PRODUCTOS":
+            filename = "lista_productos.json"
+
+        elif tipo == "AVANCE":
+            filename = "avance_dependiente.json"
+
+        elif tipo == "ENVIO_DIA":
+            filename = "cierre_dia_dependiente.json"
+
+        else:
+            filename = f"sync_{int(time.time())}.json"
+
         filename = os.path.basename(filename)
 
         ruta = os.path.join(CARPETA_ARCHIVOS, filename)
@@ -55,6 +67,7 @@ def listar_archivos():
 
 @app.route("/download/<filename>", methods=["GET"])
 def descargar_archivo(filename):
+
     filename = os.path.basename(filename)
     ruta = os.path.join(CARPETA_ARCHIVOS, filename)
 
@@ -66,6 +79,7 @@ def descargar_archivo(filename):
 
 @app.route("/delete/<filename>", methods=["DELETE"])
 def eliminar_archivo(filename):
+
     filename = os.path.basename(filename)
     ruta = os.path.join(CARPETA_ARCHIVOS, filename)
 
