@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, send_from_directory
 import os
 import json
+import time
 
 app = Flask(__name__)
 
@@ -10,7 +11,7 @@ os.makedirs(CARPETA_ARCHIVOS, exist_ok=True)
 
 @app.route("/")
 def inicio():
-    return "Servidor funcionando"
+    return "Servidor de sincronización funcionando"
 
 
 @app.route("/upload", methods=["POST"])
@@ -21,8 +22,14 @@ def subir_archivo():
         if not data:
             return jsonify({"error": "No se recibió JSON"}), 400
 
-        # Siempre guardar con el mismo nombre
-        filename = "archivo_recibido.json"
+        # usar nombre enviado por la APK si existe
+        filename = data.get("filename")
+
+        # si no existe usar nombre automático
+        if not filename:
+            filename = f"sync_{int(time.time())}.json"
+
+        filename = os.path.basename(filename)
 
         ruta = os.path.join(CARPETA_ARCHIVOS, filename)
 
@@ -50,12 +57,29 @@ def listar_archivos():
 @app.route("/download/<filename>", methods=["GET"])
 def descargar_archivo(filename):
 
+    filename = os.path.basename(filename)
     ruta = os.path.join(CARPETA_ARCHIVOS, filename)
 
     if not os.path.exists(ruta):
         return jsonify({"error": "archivo no encontrado"}), 404
 
     return send_from_directory(CARPETA_ARCHIVOS, filename)
+
+
+@app.route("/delete/<filename>", methods=["DELETE"])
+def eliminar_archivo(filename):
+
+    filename = os.path.basename(filename)
+    ruta = os.path.join(CARPETA_ARCHIVOS, filename)
+
+    if os.path.exists(ruta):
+        os.remove(ruta)
+        return jsonify({
+            "estado": "archivo eliminado",
+            "archivo": filename
+        })
+    else:
+        return jsonify({"error": "archivo no encontrado"}), 404
 
 
 if __name__ == "__main__":
