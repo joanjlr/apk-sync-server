@@ -22,12 +22,13 @@ def subir_archivo():
         if not data:
             return jsonify({"error": "No se recibió JSON"}), 400
 
-        # Si el JSON trae nombre de archivo usarlo
         filename = data.get("filename")
 
-        # Si no trae nombre usar uno automático
         if not filename:
             filename = f"sync_{int(time.time())}.json"
+
+        # Seguridad básica
+        filename = os.path.basename(filename)
 
         ruta = os.path.join(CARPETA_ARCHIVOS, filename)
 
@@ -40,9 +41,7 @@ def subir_archivo():
         })
 
     except Exception as e:
-        return jsonify({
-            "error": str(e)
-        }), 500
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/files", methods=["GET"])
@@ -56,30 +55,28 @@ def listar_archivos():
 
 @app.route("/download/<filename>", methods=["GET"])
 def descargar_archivo(filename):
-    try:
-        return send_from_directory(CARPETA_ARCHIVOS, filename)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 404
+    filename = os.path.basename(filename)
+    ruta = os.path.join(CARPETA_ARCHIVOS, filename)
+
+    if not os.path.exists(ruta):
+        return jsonify({"error": "archivo no encontrado"}), 404
+
+    return send_from_directory(CARPETA_ARCHIVOS, filename)
 
 
 @app.route("/delete/<filename>", methods=["DELETE"])
 def eliminar_archivo(filename):
-    try:
-        ruta = os.path.join(CARPETA_ARCHIVOS, filename)
+    filename = os.path.basename(filename)
+    ruta = os.path.join(CARPETA_ARCHIVOS, filename)
 
-        if os.path.exists(ruta):
-            os.remove(ruta)
-            return jsonify({
-                "estado": "archivo eliminado",
-                "archivo": filename
-            })
-        else:
-            return jsonify({
-                "error": "archivo no encontrado"
-            }), 404
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    if os.path.exists(ruta):
+        os.remove(ruta)
+        return jsonify({
+            "estado": "archivo eliminado",
+            "archivo": filename
+        })
+    else:
+        return jsonify({"error": "archivo no encontrado"}), 404
 
 
 if __name__ == "__main__":
