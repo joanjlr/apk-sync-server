@@ -22,19 +22,14 @@ def subir_archivo():
         if not data:
             return jsonify({"error": "No se recibió JSON"}), 400
 
-        tipo = data.get("tipo_envio", "")
-
-        # Determinar nombre según tipo
-        if tipo == "FULL_SYNC":
-            filename = f"sync_{int(time.time())}.json"
-
-        elif tipo == "CATALOGO_PRODUCTOS":
+        # Detectar tipo de archivo automáticamente
+        if "productos" in data:
             filename = "lista_productos.json"
 
-        elif tipo == "AVANCE":
+        elif data.get("tipo_envio") == "AVANCE":
             filename = "avance_dependiente.json"
 
-        elif tipo == "ENVIO_DIA":
+        elif data.get("tipo_envio") == "ENVIO_DIA":
             filename = "cierre_dia_dependiente.json"
 
         else:
@@ -53,7 +48,9 @@ def subir_archivo():
         })
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({
+            "error": str(e)
+        }), 500
 
 
 @app.route("/files", methods=["GET"])
